@@ -1,42 +1,62 @@
 import processing.video.* ;
  
-Movie bikeFilm, staticFilm ;
- 
- 
-int x ;
-int y ;
-int rayon = 200 ;
-float angle = 10 ;
+Movie bikeFilm, staticFilm, officeFilm, homeFilm ;
+
+PImage movie;
  
 void setup() {
-  
-  size (800,800);
+  size(1000, 1000);
   background(0);
    
   staticFilm = new Movie(this, "static.mov");
   bikeFilm = new Movie (this, "bike.mov");
+  officeFilm = new Movie (this, "office.mov");
+  homeFilm = new Movie(this, "room.mov");
    
+  staticFilm.play(); 
   staticFilm.loop();
-  bikeFilm.loop() ;
   
-  staticFilm.loop();
-  bikeFilm.play() ;
   
-}
-
-void movieEvent(Movie m) {
-  m.read();
 }
 
  
 void draw() {
-  angle = 1;
+   movie = bikeFilm; 
+   if (key == 's'){
+     bikeFilm.play();
+     officeFilm.stop();
+     homeFilm.stop();
+     movie = bikeFilm;
+   }
+  else if (key == 'd'){
+     officeFilm.play();
+     bikeFilm.stop();
+     homeFilm.stop();
+     movie = officeFilm;
+     
+  } else if (key == 'f'){
+    homeFilm.play();
+    bikeFilm.stop();
+    officeFilm.stop();
+    movie = homeFilm;
+  } else {
+    
+    movie = staticFilm;
+    
+  }
  
-  x = round (width/2) ;
-  y = round (height/2) ;
-   
-  imageMode(CENTER);
-  image (bikeFilm, x, y) ;
-   
+ image(staticFilm, 0, 0);
+ tint(255, 126);
+ image(movie, 20, 100);
+ 
+ 
+  //Testing to see if they play at the same time.
+  println("Movie 1: " + bikeFilm.time());
+  println("Movie 2: " + officeFilm.time());
+}
+
+void movieEvent(Movie m) {
+ m.read();
+  
 }
 
