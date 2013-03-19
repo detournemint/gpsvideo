@@ -1,0 +1,645 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.0//EN" "http://www.w3.org/TR/2001/REC-SVG-20010904/DTD/svg10.dtd">
+<svg height="700" onload="init(evt)" width="700" xmlns="http://www.w3.org/2000/svg" xmlns:svg="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">	<script type="text/ecmascript"><![CDATA[
+		var SVGDoc; var SVGRoot;
+		function init(evt) {
+			SVGDoc = evt.getTarget().getOwnerDocument();
+			SVGRoot = SVGDoc.getDocumentElement();
+		}]]>
+	</script>	<script type="text/ecmascript"><![CDATA[
+	var svgns = "http://www.w3.org/2000/svg";
+	var tracking;
+	var x_offset = 0; var y_offset = 0; // how far off the mouse was from a group's coordinates
+	var global_mouse_x; var global_mouse_y; // for seeing if the mouse moved
+	
+	function toggle_item_opacity(id,op1,op2) {
+		if (SVGDoc.getElementById(id) != null) {
+			var item = SVGDoc.getElementById(id);
+			var new_op = (parseFloat(item.getAttributeNS(null, 'opacity')) == op1) ? op2 : op1;
+			item.setAttributeNS(null, 'opacity',new_op.toString());
+		}
+	}
+	function showSaver(op) {
+		if (SVGDoc.getElementById('Saver') != null) {
+			var theSaver = SVGDoc.getElementById('Saver');
+			theSaver.setAttributeNS(null, 'opacity',op);
+		}
+	}
+	function trackGroup(evt,id,onoff){
+		tracking = onoff;
+		if (onoff) {
+			findGroupClickOffset(evt,id);
+			showSaver(1);
+		}
+	}
+	function findGroupClickOffset(evt,name_of_group) {
+		var theClickedThing = SVGDoc.getElementById(name_of_group);
+		var scale = SVGRoot.getCurrentScale();
+		var pan = SVGRoot.getCurrentTranslate();
+		var mouse_x = (evt.getClientX())/scale + (( 0.0 - pan.x ) / scale);
+		var mouse_y = (evt.getClientY())/scale + (( 0.0 - pan.y ) / scale);
+		var group_coords = findGroupCoordinates(name_of_group);
+		x_offset = mouse_x - group_coords.x; // global variable
+		y_offset = mouse_y - group_coords.y; // global variable
+	}
+	function findGroupCoordinates(name_of_group) {
+		var theGroup = SVGDoc.getElementById(name_of_group);
+		var old_transform = theGroup.getAttributeNS(null, 'transform'); 
+		var regex = /([0-9e.-]+),([0-9e.-]+)/;
+		var numbers = regex.exec(old_transform);
+		var group_x = eval(numbers[1]) + parseFloat(theGroup.getAttributeNS(null, 'x'));
+		var group_y = eval(numbers[2]) + parseFloat(theGroup.getAttributeNS(null, 'y'));
+		return { x: group_x, y: group_y };
+	}
+	function moveGroup(evt,name_of_group) {
+		if (tracking) {
+			var theGroup = SVGDoc.getElementById(name_of_group);
+			// Find out where the mouse is, and use x and y offset values
+			var scale = SVGRoot.getCurrentScale();
+			var pan = SVGRoot.getCurrentTranslate();
+			var new_x = evt.getClientX()/scale + (( 0.0 - pan.x ) / scale) - x_offset;
+			var new_y = evt.getClientY()/scale + (( 0.0 - pan.y ) / scale) - y_offset;
+			// Calculate new translation based on difference between mouse position and origin
+			var new_x_transform = new_x - parseFloat(theGroup.getAttributeNS(null, 'x'));
+			var new_y_transform = new_y - parseFloat(theGroup.getAttributeNS(null, 'y'));
+			// Plug new translation values into old transform attribute
+			var old_transform = theGroup.getAttributeNS(null, 'transform');
+			var regex = /([0-9e.-]+),([0-9e.-]+)/;
+			var new_transform = old_transform.replace(regex,new_x_transform+','+new_y_transform);
+			theGroup.setAttributeNS(null, 'transform',new_transform);
+		}
+	}
+	var original_stroke_color = new Object;
+	var original_stroke_width = new Object;
+	function highlight(name_of_thing,onoff) {
+		var highlight_color = '#0000FF';
+		var highlight_width = '1';
+		var theThing = SVGDoc.getElementById(name_of_thing);
+		if (onoff) {
+			original_stroke_color[name_of_thing] = theThing.getAttributeNS(null, 'stroke');
+			original_stroke_width[name_of_thing] = theThing.getAttributeNS(null, 'stroke-width');
+			theThing.setAttributeNS(null, 'stroke',highlight_color);
+			theThing.setAttributeNS(null, 'stroke-width',highlight_width);
+		} else {
+			theThing.setAttributeNS(null, 'stroke',original_stroke_color[name_of_thing]);
+			theThing.setAttributeNS(null, 'stroke-width',original_stroke_width[name_of_thing]);
+		}
+	}
+	]]>
+	</script>	<script type="text/ecmascript"><![CDATA[
+	function toggle_track_opacity(id,track_op,label_op) {
+		toggle_item_opacity(id+' track',track_op,1);
+		toggle_item_opacity(id+' label',label_op,1);
+	}
+	function toggle_track_opacity_from_legend(id,legend_id,track_op,label_op) {
+		toggle_item_opacity(id+' track',track_op,1);
+		toggle_item_opacity(id+' label',label_op,1);
+		toggle_item_opacity(legend_id,label_op,1);
+	}
+	function trackLabelMouseDown(evt,id) {
+		tracking = 1;
+		showSaver(1);
+		findGroupClickOffset(evt,id+' label');
+		var scale = SVGRoot.getCurrentScale();
+		var pan = SVGRoot.getCurrentTranslate();
+		global_mouse_x = (evt.getClientX())/scale + (( 0.0 - pan.x ) / scale);
+		global_mouse_y = (evt.getClientY())/scale + (( 0.0 - pan.y ) / scale);
+	}
+	function trackLabelMouseUp(evt,id) {
+		tracking = 0;
+		var scale = SVGRoot.getCurrentScale();
+		var pan = SVGRoot.getCurrentTranslate();
+		var current_mouse_x = (evt.getClientX())/scale + (( 0.0 - pan.x ) / scale);
+		var current_mouse_y = (evt.getClientY())/scale + (( 0.0 - pan.y ) / scale);
+		if (current_mouse_x == global_mouse_x && current_mouse_y == global_mouse_y) {
+			toggle_track_opacity(id,0,0.25);
+		}
+	}
+	]]>
+	</script>
+	<g id="demis background" opacity="0.5" transform="translate(0,0)">
+		<image height="700" id="background map 1" opacity="1" width="700" x="0" xlink:href="http://www2.demis.nl/wms/wms.asp?version=1.1.0&amp;wms=WorldMap&amp;request=GetMap&amp;srs=EPSG:4326&amp;bbox=-122.3046764,37.7994942,-122.0241036,38.0211458&amp;WIDTH=700&amp;HEIGHT=700&amp;format=PNG&amp;transparent=FALSE&amp;exceptions=INIMAGE&amp;wrapdateline=TRUE&amp;layers=Bathymetry,Countries,Topography,Builtup+areas,Coastlines,Waterbodies,Rivers,Streams,Highways,Roads,Railroads,Trails,Hillshading,Borders,Settlements,Cities,Airports" y="0" />
+	</g>
+	<g id="Track-02/27/13 10:13:02 (t1) track" opacity="0.9">
+		<line fill="none" id="t1 p1" stroke="#64CC00" stroke-width="2" x1="49.7143" x2="49.6893" y1="658.5883" y2="658.5031" />
+		<line fill="none" id="t1 p2" stroke="#00CC20" stroke-width="2" x1="49.6893" x2="49.5396" y1="658.5031" y2="658.3894" />
+		<line fill="none" id="t1 p3" stroke="#00CC20" stroke-width="2" x1="49.5396" x2="49.3151" y1="658.3894" y2="658.6104" />
+		<line fill="none" id="t1 p4" stroke="#00CC1C" stroke-width="2" x1="49.3151" x2="49.7143" y1="658.6104" y2="658.5662" />
+		<line fill="none" id="t1 p5" stroke="#08CC00" stroke-width="2" x1="49.7143" x2="49.7642" y1="658.5662" y2="658.2630" />
+		<line fill="none" id="t1 p6" stroke="#003CCC" stroke-width="2" x1="49.7642" x2="49.4997" y1="658.2630" y2="658.8410" />
+		<line fill="none" id="t1 p7" stroke="#00B8CC" stroke-width="2" x1="49.4997" x2="49.5646" y1="658.8410" y2="658.7052" />
+		<line fill="none" id="t1 p8" stroke="#00CC34" stroke-width="2" x1="49.5646" x2="49.2902" y1="658.7052" y2="658.0578" />
+		<line fill="none" id="t1 p9" stroke="#3CCC00" stroke-width="2" x1="49.2902" x2="49.6893" y1="658.0578" y2="658.5410" />
+		<line fill="none" id="t1 p10" stroke="#48CC00" stroke-width="2" x1="49.6893" x2="49.5646" y1="658.5410" y2="658.3357" />
+		<line fill="none" id="t1 p11" stroke="#44CC00" stroke-width="2" x1="49.5646" x2="49.4897" y1="658.3357" y2="658.3357" />
+		<line fill="none" id="t1 p12" stroke="#14CC00" stroke-width="2" x1="49.4897" x2="49.7891" y1="658.3357" y2="658.6736" />
+		<line fill="none" id="t1 p13" stroke="#08CC00" stroke-width="2" x1="49.7891" x2="49.6519" y1="658.6736" y2="658.6610" />
+		<line fill="none" id="t1 p14" stroke="#00CC28" stroke-width="2" x1="49.6519" x2="49.7293" y1="658.6610" y2="658.5410" />
+		<line fill="none" id="t1 p15" stroke="#00CC5C" stroke-width="2" x1="49.7293" x2="49.8141" y1="658.5410" y2="658.8536" />
+		<line fill="none" id="t1 p16" stroke="#10CC00" stroke-width="2" x1="49.8141" x2="49.8390" y1="658.8536" y2="659.0115" />
+		<line fill="none" id="t1 p17" stroke="#0CCC00" stroke-width="2" x1="49.8390" x2="49.5396" y1="659.0115" y2="658.9010" />
+		<line fill="none" id="t1 p18" stroke="#00B4CC" stroke-width="2" x1="49.5396" x2="49.4897" y1="658.9010" y2="658.7810" />
+		<line fill="none" id="t1 p19" stroke="#00CC74" stroke-width="2" x1="49.4897" x2="49.5396" y1="658.7810" y2="658.7462" />
+		<line fill="none" id="t1 p20" stroke="#30CC00" stroke-width="2" x1="49.5396" x2="50.4129" y1="658.7462" y2="658.9736" />
+		<line fill="none" id="t1 p21" stroke="#28CC00" stroke-width="2" x1="50.4129" x2="49.3650" y1="658.9736" y2="658.7368" />
+		<line fill="none" id="t1 p22" stroke="#00CCA0" stroke-width="2" x1="49.3650" x2="49.6394" y1="658.7368" y2="658.6989" />
+		<line fill="none" id="t1 p23" stroke="#00CC14" stroke-width="2" x1="49.6394" x2="49.8141" y1="658.6989" y2="658.8789" />
+		<line fill="none" id="t1 p24" stroke="#1CCC00" stroke-width="2" x1="49.8141" x2="49.5895" y1="658.8789" y2="658.6483" />
+		<line fill="none" id="t1 p25" stroke="#08CC00" stroke-width="2" x1="49.5895" x2="49.6145" y1="658.6483" y2="658.7936" />
+		<line fill="none" id="t1 p26" stroke="#00CC40" stroke-width="2" x1="49.6145" x2="49.5895" y1="658.7936" y2="658.5031" />
+		<line fill="none" id="t1 p27" stroke="#3CCC00" stroke-width="2" x1="49.5895" x2="49.0407" y1="658.5031" y2="658.2504" />
+		<line fill="none" id="t1 p28" stroke="#98CC00" stroke-width="2" x1="49.0407" x2="49.2527" y1="658.2504" y2="658.4336" />
+		<line fill="none" id="t1 p29" stroke="#00CC58" stroke-width="2" x1="49.2527" x2="49.1405" y1="658.4336" y2="658.4083" />
+		<line fill="none" id="t1 p30" stroke="#00CC20" stroke-width="2" x1="49.1405" x2="48.5417" y1="658.4083" y2="658.6104" />
+		<line fill="none" id="t1 p31" stroke="#0080CC" stroke-width="2" x1="48.5417" x2="49.3151" y1="658.6104" y2="658.5883" />
+		<line fill="none" id="t1 p32" stroke="#0080CC" stroke-width="2" x1="49.3151" x2="49.4149" y1="658.5883" y2="658.7936" />
+		<line fill="none" id="t1 p33" stroke="#0034CC" stroke-width="2" x1="49.4149" x2="49.4997" y1="658.7936" y2="658.7462" />
+		<line fill="none" id="t1 p34" stroke="#00CCB0" stroke-width="2" x1="49.4997" x2="49.3650" y1="658.7462" y2="658.7589" />
+		<line fill="none" id="t1 p35" stroke="#00CCC8" stroke-width="2" x1="49.3650" x2="49.5147" y1="658.7589" y2="658.6010" />
+		<line fill="none" id="t1 p36" stroke="#00CCA0" stroke-width="2" x1="49.5147" x2="49.5646" y1="658.6010" y2="658.5157" />
+		<line fill="none" id="t1 p37" stroke="#00CC5C" stroke-width="2" x1="49.5646" x2="49.4648" y1="658.5157" y2="658.8536" />
+		<line fill="none" id="t1 p38" stroke="#14CC00" stroke-width="2" x1="49.4648" x2="49.4648" y1="658.8536" y2="658.6989" />
+		<line fill="none" id="t1 p39" stroke="#00CC18" stroke-width="2" x1="49.4648" x2="49.4648" y1="658.6989" y2="658.4083" />
+		<line fill="none" id="t1 p40" stroke="#24CC00" stroke-width="2" x1="49.4648" x2="49.5396" y1="658.4083" y2="658.7683" />
+		<line fill="none" id="t1 p41" stroke="#1CCC00" stroke-width="2" x1="49.5396" x2="49.3151" y1="658.7683" y2="658.5789" />
+		<line fill="none" id="t1 p42" stroke="#4CCC00" stroke-width="2" x1="49.3151" x2="49.4648" y1="658.5789" y2="658.3736" />
+		<line fill="none" id="t1 p43" stroke="#34CC00" stroke-width="2" x1="49.4648" x2="49.5147" y1="658.3736" y2="658.5157" />
+		<line fill="none" id="t1 p44" stroke="#18CC00" stroke-width="2" x1="49.5147" x2="49.4399" y1="658.5157" y2="658.4525" />
+		<line fill="none" id="t1 p45" stroke="#5CCC00" stroke-width="2" x1="49.4399" x2="49.5646" y1="658.4525" y2="658.6736" />
+		<line fill="none" id="t1 p46" stroke="#28CC00" stroke-width="2" x1="49.5646" x2="49.5646" y1="658.6736" y2="658.7589" />
+		<line fill="none" id="t1 p47" stroke="#54CC00" stroke-width="2" x1="49.5646" x2="49.6145" y1="658.7589" y2="658.4209" />
+		<line fill="none" id="t1 p48" stroke="#80CC00" stroke-width="2" x1="49.6145" x2="49.4897" y1="658.4209" y2="658.6010" />
+		<line fill="none" id="t1 p49" stroke="#1CCC00" stroke-width="2" x1="49.4897" x2="49.6394" y1="658.6010" y2="658.6104" />
+		<line fill="none" id="t1 p50" stroke="#2CCC00" stroke-width="2" x1="49.6394" x2="49.4399" y1="658.6104" y2="658.4209" />
+		<line fill="none" id="t1 p51" stroke="#00CC08" stroke-width="2" x1="49.4399" x2="49.6145" y1="658.4209" y2="658.4525" />
+		<line fill="none" id="t1 p52" stroke="#00CC40" stroke-width="2" x1="49.6145" x2="49.4149" y1="658.4525" y2="658.6483" />
+		<line fill="none" id="t1 p53" stroke="#00CC1C" stroke-width="2" x1="49.4149" x2="49.4648" y1="658.6483" y2="658.5789" />
+		<line fill="none" id="t1 p54" stroke="#44CC00" stroke-width="2" x1="49.4648" x2="49.6394" y1="658.5789" y2="658.5662" />
+		<line fill="none" id="t1 p55" stroke="#50CC00" stroke-width="2" x1="49.6394" x2="49.5771" y1="658.5662" y2="658.6010" />
+		<line fill="none" id="t1 p56" stroke="#80CC00" stroke-width="2" x1="49.5771" x2="49.6394" y1="658.6010" y2="658.5473" />
+		<line fill="none" id="t1 p57" stroke="#10CC00" stroke-width="2" x1="49.6394" x2="49.4897" y1="658.5473" y2="658.7210" />
+		<line fill="none" id="t1 p58" stroke="#10CC00" stroke-width="2" x1="49.4897" x2="49.3151" y1="658.7210" y2="658.7810" />
+		<line fill="none" id="t1 p59" stroke="#00A8CC" stroke-width="2" x1="49.3151" x2="49.1754" y1="658.7810" y2="658.8189" />
+		<line fill="none" id="t1 p60" stroke="#00CC7C" stroke-width="2" x1="49.1754" x2="49.3151" y1="658.8189" y2="658.7810" />
+		<line fill="none" id="t1 p61" stroke="#00CC54" stroke-width="2" x1="49.3151" x2="49.3900" y1="658.7810" y2="658.5157" />
+		<line fill="none" id="t1 p62" stroke="#00CC44" stroke-width="2" x1="49.3900" x2="49.5396" y1="658.5157" y2="658.4683" />
+		<line fill="none" id="t1 p63" stroke="#00CC10" stroke-width="2" x1="49.5396" x2="49.5396" y1="658.4683" y2="658.6862" />
+		<line fill="none" id="t1 p64" stroke="#00CC2C" stroke-width="2" x1="49.5396" x2="49.7293" y1="658.6862" y2="658.7462" />
+		<line fill="none" id="t1 p65" stroke="#00CC30" stroke-width="2" x1="49.7293" x2="49.5895" y1="658.7462" y2="658.7052" />
+		<line fill="none" id="t1 p66" stroke="#34CC00" stroke-width="2" x1="49.5895" x2="49.4149" y1="658.7052" y2="658.7368" />
+		<line fill="none" id="t1 p67" stroke="#2CCC00" stroke-width="2" x1="49.4149" x2="49.2527" y1="658.7368" y2="658.4841" />
+		<line fill="none" id="t1 p68" stroke="#08CC00" stroke-width="2" x1="49.2527" x2="49.4149" y1="658.4841" y2="658.7210" />
+		<line fill="none" id="t1 p69" stroke="#3CCC00" stroke-width="2" x1="49.4149" x2="49.6394" y1="658.7210" y2="658.5662" />
+		<line fill="none" id="t1 p70" stroke="#5CCC00" stroke-width="2" x1="49.6394" x2="49.7392" y1="658.5662" y2="658.5410" />
+		<line fill="none" id="t1 p71" stroke="#28CC00" stroke-width="2" x1="49.7392" x2="49.9638" y1="658.5410" y2="658.8315" />
+		<line fill="none" id="t1 p72" stroke="#7CCC00" stroke-width="2" x1="49.9638" x2="49.4399" y1="658.8315" y2="658.6010" />
+		<line fill="none" id="t1 p73" stroke="#00CC4C" stroke-width="2" x1="49.4399" x2="49.7143" y1="658.6010" y2="658.4336" />
+		<line fill="none" id="t1 p74" stroke="#00CC14" stroke-width="2" x1="49.7143" x2="49.9388" y1="658.4336" y2="658.6420" />
+		<line fill="none" id="t1 p75" stroke="#00CC94" stroke-width="2" x1="49.9388" x2="49.9638" y1="658.6420" y2="658.4936" />
+		<line fill="none" id="t1 p76" stroke="#00CCCC" stroke-width="2" x1="49.9638" x2="49.9638" y1="658.4936" y2="658.5157" />
+		<line fill="none" id="t1 p77" stroke="#00CC90" stroke-width="2" x1="49.9638" x2="49.8989" y1="658.5157" y2="658.7936" />
+		<line fill="none" id="t1 p78" stroke="#00CC04" stroke-width="2" x1="49.8989" x2="49.8889" y1="658.7936" y2="658.5283" />
+		<line fill="none" id="t1 p79" stroke="#40CC00" stroke-width="2" x1="49.8889" x2="49.7891" y1="658.5283" y2="658.7368" />
+		<line fill="none" id="t1 p80" stroke="#1CCC00" stroke-width="2" x1="49.7891" x2="49.9139" y1="658.7368" y2="658.5157" />
+		<line fill="none" id="t1 p81" stroke="#00CC50" stroke-width="2" x1="49.9139" x2="49.8889" y1="658.5157" y2="658.7589" />
+		<line fill="none" id="t1 p82" stroke="#74CC00" stroke-width="2" x1="49.8889" x2="49.7642" y1="658.7589" y2="658.6483" />
+		<line fill="none" id="t1 p83" stroke="#34CC00" stroke-width="2" x1="49.7642" x2="50.1135" y1="658.6483" y2="658.3262" />
+		<line fill="none" id="t1 p84" stroke="#00CCA8" stroke-width="2" x1="50.1135" x2="50.1634" y1="658.3262" y2="658.4936" />
+		<line fill="none" id="t1 p85" stroke="#00CC80" stroke-width="2" x1="50.1634" x2="50.0137" y1="658.4936" y2="658.3262" />
+		<line fill="none" id="t1 p86" stroke="#00CC44" stroke-width="2" x1="50.0137" x2="651.4583" y1="658.3262" y2="40.0000" />
+		<line fill="none" id="t1 p87" stroke="#00CC34" stroke-width="2" x1="651.4583" x2="49.8640" y1="40.0000" y2="658.0830" />
+		<line fill="none" id="t1 p88" stroke="#00CC00" stroke-width="2" x1="49.8640" x2="50.0636" y1="658.0830" y2="658.9989" />
+		<line fill="none" id="t1 p89" stroke="#90CC00" stroke-width="2" x1="50.0636" x2="49.5895" y1="658.9989" y2="658.6989" />
+		<line fill="none" id="t1 p90" stroke="#28CC00" stroke-width="2" x1="49.5895" x2="49.6644" y1="658.6989" y2="658.4083" />
+		<line fill="none" id="t1 p91" stroke="#44CC00" stroke-width="2" x1="49.6644" x2="49.6893" y1="658.4083" y2="658.8315" />
+		<line fill="none" id="t1 p92" stroke="#0014CC" stroke-width="2" x1="49.6893" x2="49.8241" y1="658.8315" y2="658.1904" />
+		<line fill="none" id="t1 p93" stroke="#68CC00" stroke-width="2" x1="49.8241" x2="49.7642" y1="658.1904" y2="658.3578" />
+		<line fill="none" id="t1 p94" stroke="#CC4000" stroke-width="2" x1="49.7642" x2="50.0386" y1="658.3578" y2="658.6862" />
+		<line fill="none" id="t1 p95" stroke="#30CC00" stroke-width="2" x1="50.0386" x2="50.9368" y1="658.6862" y2="660.0000" />
+		<line fill="none" id="t1 p96" stroke="#003CCC" stroke-width="2" x1="50.9368" x2="50.6374" y1="660.0000" y2="659.3842" />
+		<line fill="none" id="t1 p97" stroke="#00C0CC" stroke-width="2" x1="50.6374" x2="50.4877" y1="659.3842" y2="659.1315" />
+		<line fill="none" id="t1 p98" stroke="#00CCB0" stroke-width="2" x1="50.4877" x2="49.8640" y1="659.1315" y2="658.8631" />
+		<line fill="none" id="t1 p99" stroke="#40CC00" stroke-width="2" x1="49.8640" x2="49.7392" y1="658.8631" y2="658.7810" />
+		<line fill="none" id="t1 p100" stroke="#80CC00" stroke-width="2" x1="49.7392" x2="49.4648" y1="658.7810" y2="658.6010" />
+		<line fill="none" id="t1 p101" stroke="#00CC4C" stroke-width="2" x1="49.4648" x2="49.5646" y1="658.6010" y2="658.7999" />
+		<line fill="none" id="t1 p102" stroke="#00CC28" stroke-width="2" x1="49.5646" x2="49.7293" y1="658.7999" y2="658.8947" />
+		<line fill="none" id="t1 p103" stroke="#58CC00" stroke-width="2" x1="49.7293" x2="49.5396" y1="658.8947" y2="658.8189" />
+		<line fill="none" id="t1 p104" stroke="#3CCC00" stroke-width="2" x1="49.5396" x2="49.6644" y1="658.8189" y2="658.5883" />
+		<line fill="none" id="t1 p105" stroke="#74CC00" stroke-width="2" x1="49.6644" x2="49.6145" y1="658.5883" y2="658.5410" />
+		<line fill="none" id="t1 p106" stroke="#48CC00" stroke-width="2" x1="49.6145" x2="49.7143" y1="658.5410" y2="658.6010" />
+		<line fill="none" id="t1 p107" stroke="#74CC00" stroke-width="2" x1="49.7143" x2="49.6893" y1="658.6010" y2="658.5283" />
+		<line fill="none" id="t1 p108" stroke="#24CC00" stroke-width="2" x1="49.6893" x2="49.5396" y1="658.5283" y2="658.6262" />
+		<line fill="none" id="t1 p109" stroke="#04CC00" stroke-width="2" x1="49.5396" x2="49.6394" y1="658.6262" y2="658.8536" />
+		<line fill="none" id="t1 p110" stroke="#00CC0C" stroke-width="2" x1="49.6394" x2="49.4399" y1="658.8536" y2="658.6610" />
+		<line fill="none" id="t1 p111" stroke="#00CC18" stroke-width="2" x1="49.4399" x2="49.5396" y1="658.6610" y2="658.5410" />
+		<line fill="none" id="t1 p112" stroke="#2CCC00" stroke-width="2" x1="49.5396" x2="49.5646" y1="658.5410" y2="658.7052" />
+		<line fill="none" id="t1 p113" stroke="#CCB000" stroke-width="2" x1="49.5646" x2="49.4648" y1="658.7052" y2="658.6989" />
+		<line fill="none" id="t1 p114" stroke="#58CC00" stroke-width="2" x1="49.4648" x2="49.7642" y1="658.6989" y2="658.7210" />
+		<line fill="none" id="t1 p115" stroke="#00CC14" stroke-width="2" x1="49.7642" x2="49.4997" y1="658.7210" y2="658.5883" />
+		<line fill="none" id="t1 p116" stroke="#44CC00" stroke-width="2" x1="49.4997" x2="49.4149" y1="658.5883" y2="658.6989" />
+		<line fill="none" id="t1 p117" stroke="#00CCA8" stroke-width="2" x1="49.4149" x2="49.1654" y1="658.6989" y2="658.5789" />
+		<line fill="none" id="t1 p118" stroke="#00CC74" stroke-width="2" x1="49.1654" x2="49.3301" y1="658.5789" y2="658.5662" />
+		<line fill="none" id="t1 p119" stroke="#00CC6C" stroke-width="2" x1="49.3301" x2="49.6519" y1="658.5662" y2="658.4841" />
+		<line fill="none" id="t1 p120" stroke="#00CC14" stroke-width="2" x1="49.6519" x2="49.8640" y1="658.4841" y2="658.6610" />
+		<line fill="none" id="t1 p121" stroke="#00CC10" stroke-width="2" x1="49.8640" x2="49.6394" y1="658.6610" y2="658.6862" />
+		<line fill="none" id="t1 p122" stroke="#08CC00" stroke-width="2" x1="49.6394" x2="49.6893" y1="658.6862" y2="658.4683" />
+		<line fill="none" id="t1 p123" stroke="#34CC00" stroke-width="2" x1="49.6893" x2="49.7392" y1="658.4683" y2="658.5157" />
+		<line fill="none" id="t1 p124" stroke="#00CC04" stroke-width="2" x1="49.7392" x2="49.6644" y1="658.5157" y2="658.8189" />
+		<line fill="none" id="t1 p125" stroke="#28CC00" stroke-width="2" x1="49.6644" x2="49.5646" y1="658.8189" y2="658.6862" />
+		<line fill="none" id="t1 p126" stroke="#58CC00" stroke-width="2" x1="49.5646" x2="49.6145" y1="658.6862" y2="658.6104" />
+		<line fill="none" id="t1 p127" stroke="#00CC10" stroke-width="2" x1="49.6145" x2="49.7891" y1="658.6104" y2="658.6862" />
+		<line fill="none" id="t1 p128" stroke="#0CCC00" stroke-width="2" x1="49.7891" x2="49.6519" y1="658.6862" y2="658.7683" />
+		<line fill="none" id="t1 p129" stroke="#00CC64" stroke-width="2" x1="49.6519" x2="49.6394" y1="658.7683" y2="658.6989" />
+		<line fill="none" id="t1 p130" stroke="#14CC00" stroke-width="2" x1="49.6394" x2="49.6145" y1="658.6989" y2="658.7810" />
+		<line fill="none" id="t1 p131" stroke="#00CC7C" stroke-width="2" x1="49.6145" x2="49.6394" y1="658.7810" y2="658.8315" />
+		<line fill="none" id="t1 p132" stroke="#00CCBC" stroke-width="2" x1="49.6394" x2="49.7642" y1="658.8315" y2="659.0936" />
+		<line fill="none" id="t1 p133" stroke="#00CC2C" stroke-width="2" x1="49.7642" x2="49.8141" y1="659.0936" y2="658.7368" />
+		<line fill="none" id="t1 p134" stroke="#00CC30" stroke-width="2" x1="49.8141" x2="49.4648" y1="658.7368" y2="658.7210" />
+		<line fill="none" id="t1 p135" stroke="#CC8800" stroke-width="2" x1="49.4648" x2="50.0386" y1="658.7210" y2="657.9788" />
+		<line fill="none" id="t1 p136" stroke="#00CC3C" stroke-width="2" x1="50.0386" x2="49.8141" y1="657.9788" y2="658.4525" />
+		<line fill="none" id="t1 p137" stroke="#30CC00" stroke-width="2" x1="49.8141" x2="49.8141" y1="658.4525" y2="658.8947" />
+		<line fill="none" id="t1 p138" stroke="#00CC30" stroke-width="2" x1="49.8141" x2="49.6893" y1="658.8947" y2="658.6736" />
+		<line fill="none" id="t1 p139" stroke="#00CC24" stroke-width="2" x1="49.6893" x2="49.5147" y1="658.6736" y2="658.7936" />
+		<line fill="none" id="t1 p140" stroke="#40CC00" stroke-width="2" x1="49.5147" x2="49.5895" y1="658.7936" y2="658.5883" />
+		<line fill="none" id="t1 p141" stroke="#50CC00" stroke-width="2" x1="49.5895" x2="49.4149" y1="658.5883" y2="658.5883" />
+		<line fill="none" id="t1 p142" stroke="#00CC34" stroke-width="2" x1="49.4149" x2="49.5396" y1="658.5883" y2="658.6104" />
+		<line fill="none" id="t1 p143" stroke="#34CC00" stroke-width="2" x1="49.5396" x2="49.5147" y1="658.6104" y2="658.6262" />
+		<line fill="none" id="t1 p144" stroke="#00CC58" stroke-width="2" x1="49.5147" x2="49.3900" y1="658.6262" y2="658.8631" />
+		<line fill="none" id="t1 p145" stroke="#00CC70" stroke-width="2" x1="49.3900" x2="49.6145" y1="658.8631" y2="658.8315" />
+		<line fill="none" id="t1 p146" stroke="#00CC18" stroke-width="2" x1="49.6145" x2="49.3401" y1="658.8315" y2="658.4083" />
+		<line fill="none" id="t1 p147" stroke="#24CC00" stroke-width="2" x1="49.3401" x2="49.4897" y1="658.4083" y2="658.5283" />
+		<line fill="none" id="t1 p148" stroke="#10CC00" stroke-width="2" x1="49.4897" x2="49.5771" y1="658.5283" y2="658.4841" />
+		<line fill="none" id="t1 p149" stroke="#5CCC00" stroke-width="2" x1="49.5771" x2="49.7891" y1="658.4841" y2="658.6262" />
+		<line fill="none" id="t1 p150" stroke="#28CC00" stroke-width="2" x1="49.7891" x2="49.7293" y1="658.6262" y2="658.4431" />
+		<line fill="none" id="t1 p151" stroke="#40CC00" stroke-width="2" x1="49.7293" x2="49.9763" y1="658.4431" y2="658.5283" />
+		<line fill="none" id="t1 p152" stroke="#00CC04" stroke-width="2" x1="49.9763" x2="49.9763" y1="658.5283" y2="658.6420" />
+		<line fill="none" id="t1 p153" stroke="#30CC00" stroke-width="2" x1="49.9763" x2="49.7891" y1="658.6420" y2="658.6420" />
+		<line fill="none" id="t1 p154" stroke="#00CC0C" stroke-width="2" x1="49.7891" x2="49.6394" y1="658.6420" y2="658.7589" />
+		<line fill="none" id="t1 p155" stroke="#00CC28" stroke-width="2" x1="49.6394" x2="49.8889" y1="658.7589" y2="658.5883" />
+		<line fill="none" id="t1 p156" stroke="#CC8400" stroke-width="2" x1="49.8889" x2="49.5771" y1="658.5883" y2="658.7210" />
+		<line fill="none" id="t1 p157" stroke="#24CC00" stroke-width="2" x1="49.5771" x2="49.8889" y1="658.7210" y2="658.6483" />
+		<line fill="none" id="t1 p158" stroke="#08CC00" stroke-width="2" x1="49.8889" x2="49.4149" y1="658.6483" y2="658.5283" />
+		<line fill="none" id="t1 p159" stroke="#A4CC00" stroke-width="2" x1="49.4149" x2="49.5646" y1="658.5283" y2="658.4336" />
+		<line fill="none" id="t1 p160" stroke="#00CC0C" stroke-width="2" x1="49.5646" x2="49.6893" y1="658.4336" y2="658.6610" />
+		<line fill="none" id="t1 p161" stroke="#84CC00" stroke-width="2" x1="49.6893" x2="49.5771" y1="658.6610" y2="658.7936" />
+		<line fill="none" id="t1 p162" stroke="#00CC04" stroke-width="2" x1="49.5771" x2="49.7642" y1="658.7936" y2="658.6610" />
+		<line fill="none" id="t1 p163" stroke="#00CC40" stroke-width="2" x1="49.7642" x2="49.5646" y1="658.6610" y2="658.5662" />
+		<line fill="none" id="t1 p164" stroke="#00CC2C" stroke-width="2" x1="49.5646" x2="49.6394" y1="658.5662" y2="658.6010" />
+		<line fill="none" id="t1 p165" stroke="#04CC00" stroke-width="2" x1="49.6394" x2="49.5147" y1="658.6010" y2="658.5662" />
+		<line fill="none" id="t1 p166" stroke="#00CC48" stroke-width="2" x1="49.5147" x2="49.7293" y1="658.5662" y2="658.4431" />
+		<line fill="none" id="t1 p167" stroke="#18CC00" stroke-width="2" x1="49.7293" x2="49.4997" y1="658.4431" y2="658.9578" />
+		<line fill="none" id="t1 p168" stroke="#CC00CC" stroke-width="2" x1="49.4997" x2="49.8889" y1="658.9578" y2="658.3357" />
+		<line fill="none" id="t1 p169" stroke="#1400CC" stroke-width="2" x1="49.8889" x2="49.4648" y1="658.3357" y2="657.8651" />
+		<line fill="none" id="t1 p170" stroke="#0098CC" stroke-width="2" x1="49.4648" x2="49.8390" y1="657.8651" y2="658.2315" />
+		<line fill="none" id="t1 p171" stroke="#00CCA0" stroke-width="2" x1="49.8390" x2="49.4997" y1="658.2315" y2="658.5283" />
+		<line fill="none" id="t1 p172" stroke="#00CC40" stroke-width="2" x1="49.4997" x2="49.6394" y1="658.5283" y2="658.5662" />
+		<line fill="none" id="t1 p173" stroke="#00CC14" stroke-width="2" x1="49.6394" x2="49.6394" y1="658.5662" y2="658.5157" />
+		<line fill="none" id="t1 p174" stroke="#00CC40" stroke-width="2" x1="49.6394" x2="49.6519" y1="658.5157" y2="658.6483" />
+		<line fill="none" id="t1 p175" stroke="#00CC08" stroke-width="2" x1="49.6519" x2="49.6644" y1="658.6483" y2="658.3578" />
+		<line fill="none" id="t1 p176" stroke="#54CC00" stroke-width="2" x1="49.6644" x2="49.6519" y1="658.3578" y2="658.7052" />
+		<line fill="none" id="t1 p177" stroke="#04CC00" stroke-width="2" x1="49.6519" x2="49.6394" y1="658.7052" y2="658.6736" />
+		<line fill="none" id="t1 p178" stroke="#34CC00" stroke-width="2" x1="49.6394" x2="49.4648" y1="658.6736" y2="658.8947" />
+		<line fill="none" id="t1 p179" stroke="#1CCC00" stroke-width="2" x1="49.4648" x2="49.4997" y1="658.8947" y2="658.9389" />
+		<line fill="none" id="t1 p180" stroke="#4CCC00" stroke-width="2" x1="49.4997" x2="49.6145" y1="658.9389" y2="658.7936" />
+		<line fill="none" id="t1 p181" stroke="#00CC1C" stroke-width="2" x1="49.6145" x2="49.7293" y1="658.7936" y2="659.0841" />
+		<line fill="none" id="t1 p182" stroke="#14CC00" stroke-width="2" x1="49.7293" x2="49.3301" y1="659.0841" y2="658.7683" />
+		<line fill="none" id="t1 p183" stroke="#CCBC00" stroke-width="2" x1="49.3301" x2="49.4897" y1="658.7683" y2="658.7462" />
+		<line fill="none" id="t1 p184" stroke="#48CC00" stroke-width="2" x1="49.4897" x2="49.6644" y1="658.7462" y2="658.7683" />
+		<line fill="none" id="t1 p185" stroke="#28CC00" stroke-width="2" x1="49.6644" x2="49.7392" y1="658.7683" y2="658.5473" />
+		<line fill="none" id="t1 p186" stroke="#18CC00" stroke-width="2" x1="49.7392" x2="49.5771" y1="658.5473" y2="658.7462" />
+		<line fill="none" id="t1 p187" stroke="#00CC14" stroke-width="2" x1="49.5771" x2="49.4049" y1="658.7462" y2="658.6736" />
+		<line fill="none" id="t1 p188" stroke="#00CC1C" stroke-width="2" x1="49.4049" x2="49.4399" y1="658.6736" y2="658.8789" />
+		<line fill="none" id="t1 p189" stroke="#00CC0C" stroke-width="2" x1="49.4399" x2="49.9763" y1="658.8789" y2="658.8410" />
+		<line fill="none" id="t1 p190" stroke="#00CC38" stroke-width="2" x1="49.9763" x2="49.6519" y1="658.8410" y2="658.6610" />
+		<line fill="none" id="t1 p191" stroke="#00CC20" stroke-width="2" x1="49.6519" x2="49.6394" y1="658.6610" y2="658.5473" />
+		<line fill="none" id="t1 p192" stroke="#20CC00" stroke-width="2" x1="49.6394" x2="49.4648" y1="658.5473" y2="658.6610" />
+		<line fill="none" id="t1 p193" stroke="#38CC00" stroke-width="2" x1="49.4648" x2="49.4897" y1="658.6610" y2="658.8789" />
+		<line fill="none" id="t1 p194" stroke="#08CC00" stroke-width="2" x1="49.4897" x2="49.5771" y1="658.8789" y2="658.8315" />
+		<line fill="none" id="t1 p195" stroke="#00CC64" stroke-width="2" x1="49.5771" x2="49.6145" y1="658.8315" y2="658.7368" />
+		<line fill="none" id="t1 p196" stroke="#00CC18" stroke-width="2" x1="49.6145" x2="49.3301" y1="658.7368" y2="659.0210" />
+		<line fill="none" id="t1 p197" stroke="#00CC68" stroke-width="2" x1="49.3301" x2="49.4399" y1="659.0210" y2="658.8189" />
+		<line fill="none" id="t1 p198" stroke="#00CC30" stroke-width="2" x1="49.4399" x2="49.3151" y1="658.8189" y2="658.4431" />
+		<line fill="none" id="t1 p199" stroke="#00CC7C" stroke-width="2" x1="49.3151" x2="49.9763" y1="658.4431" y2="658.5031" />
+		<line fill="none" id="t1 p200" stroke="#00CC78" stroke-width="2" x1="49.9763" x2="49.7642" y1="658.5031" y2="658.4525" />
+		<line fill="none" id="t1 p201" stroke="#00CC1C" stroke-width="2" x1="49.7642" x2="49.6519" y1="658.4525" y2="658.7462" />
+		<line fill="none" id="t1 p202" stroke="#2CCC00" stroke-width="2" x1="49.6519" x2="49.5771" y1="658.7462" y2="658.8410" />
+		<line fill="none" id="t1 p203" stroke="#00CC08" stroke-width="2" x1="49.5771" x2="49.6519" y1="658.8410" y2="658.5410" />
+		<line fill="none" id="t1 p204" stroke="#1CCC00" stroke-width="2" x1="49.6519" x2="49.4997" y1="658.5410" y2="658.6420" />
+		<line fill="none" id="t1 p205" stroke="#28CC00" stroke-width="2" x1="49.4997" x2="49.5895" y1="658.6420" y2="658.6010" />
+		<line fill="none" id="t1 p206" stroke="#7CCC00" stroke-width="2" x1="49.5895" x2="49.5895" y1="658.6010" y2="658.6736" />
+		<line fill="none" id="t1 p207" stroke="#1CCC00" stroke-width="2" x1="49.5895" x2="49.6145" y1="658.6736" y2="658.4936" />
+		<line fill="none" id="t1 p208" stroke="#CCC800" stroke-width="2" x1="49.6145" x2="49.5147" y1="658.4936" y2="658.4336" />
+		<line fill="none" id="t1 p209" stroke="#98CC00" stroke-width="2" x1="49.5147" x2="49.6644" y1="658.4336" y2="658.6862" />
+		<line fill="none" id="t1 p210" stroke="#CCBC00" stroke-width="2" x1="49.6644" x2="49.7642" y1="658.6862" y2="658.5883" />
+		<line fill="none" id="t1 p211" stroke="#70CC00" stroke-width="2" x1="49.7642" x2="49.8989" y1="658.5883" y2="658.4841" />
+		<line fill="none" id="t1 p212" stroke="#1CCC00" stroke-width="2" x1="49.8989" x2="49.8241" y1="658.4841" y2="658.7210" />
+		<line fill="none" id="t1 p213" stroke="#08CC00" stroke-width="2" x1="49.8241" x2="49.5396" y1="658.7210" y2="658.7589" />
+		<line fill="none" id="t1 p214" stroke="#64CC00" stroke-width="2" x1="49.5396" x2="49.6145" y1="658.7589" y2="658.7999" />
+		<line fill="none" id="t1 p215" stroke="#00CC08" stroke-width="2" x1="49.6145" x2="49.6145" y1="658.7999" y2="658.6262" />
+		<line fill="none" id="t1 p216" stroke="#44CC00" stroke-width="2" x1="49.6145" x2="49.7293" y1="658.6262" y2="658.6262" />
+		<line fill="none" id="t1 p217" stroke="#0CCC00" stroke-width="2" x1="49.7293" x2="49.7642" y1="658.6262" y2="658.7210" />
+		<line fill="none" id="t1 p218" stroke="#00CC68" stroke-width="2" x1="49.7642" x2="49.4997" y1="658.7210" y2="658.6262" />
+		<line fill="none" id="t1 p219" stroke="#00CC0C" stroke-width="2" x1="49.4997" x2="49.8241" y1="658.6262" y2="658.5662" />
+		<line fill="none" id="t1 p220" stroke="#00CC58" stroke-width="2" x1="49.8241" x2="49.2652" y1="658.5662" y2="658.3357" />
+		<line fill="none" id="t1 p221" stroke="#00CC4C" stroke-width="2" x1="49.2652" x2="49.3401" y1="658.3357" y2="658.5662" />
+		<line fill="none" id="t1 p222" stroke="#00CC20" stroke-width="2" x1="49.3401" x2="49.4049" y1="658.5662" y2="658.5473" />
+		<line fill="none" id="t1 p223" stroke="#00C4CC" stroke-width="2" x1="49.4049" x2="49.3900" y1="658.5473" y2="658.4841" />
+		<line fill="none" id="t1 p224" stroke="#00CC0C" stroke-width="2" x1="49.3900" x2="49.5895" y1="658.4841" y2="658.5662" />
+		<line fill="none" id="t1 p225" stroke="#2CCC00" stroke-width="2" x1="49.5895" x2="49.7293" y1="658.5662" y2="658.4841" />
+		<line fill="none" id="t1 p226" stroke="#70CC00" stroke-width="2" x1="49.7293" x2="49.8390" y1="658.4841" y2="658.4936" />
+		<line fill="none" id="t1 p227" stroke="#34CC00" stroke-width="2" x1="49.8390" x2="49.7293" y1="658.4936" y2="658.7052" />
+		<line fill="none" id="t1 p228" stroke="#28CC00" stroke-width="2" x1="49.7293" x2="49.6893" y1="658.7052" y2="658.6010" />
+		<line fill="none" id="t1 p229" stroke="#54CC00" stroke-width="2" x1="49.6893" x2="49.7642" y1="658.6010" y2="658.8536" />
+		<line fill="none" id="t1 p230" stroke="#6CCC00" stroke-width="2" x1="49.7642" x2="49.8390" y1="658.8536" y2="658.7052" />
+		<line fill="none" id="t1 p231" stroke="#50CC00" stroke-width="2" x1="49.8390" x2="49.7143" y1="658.7052" y2="658.6010" />
+		<line fill="none" id="t1 p232" stroke="#34CC00" stroke-width="2" x1="49.7143" x2="49.5396" y1="658.6010" y2="658.5157" />
+		<line fill="none" id="t1 p233" stroke="#9CCC00" stroke-width="2" x1="49.5396" x2="49.6644" y1="658.5157" y2="658.5662" />
+		<line fill="none" id="t1 p234" stroke="#58CC00" stroke-width="2" x1="49.6644" x2="49.8640" y1="658.5662" y2="658.3957" />
+		<line fill="none" id="t1 p235" stroke="#4CCC00" stroke-width="2" x1="49.8640" x2="49.9887" y1="658.3957" y2="658.3357" />
+		<line fill="none" id="t1 p236" stroke="#CCC400" stroke-width="2" x1="49.9887" x2="50.1883" y1="658.3357" y2="658.2883" />
+		<line fill="none" id="t1 p237" stroke="#1CCC00" stroke-width="2" x1="50.1883" x2="49.8141" y1="658.2883" y2="658.3957" />
+		<line fill="none" id="t1 p238" stroke="#68CC00" stroke-width="2" x1="49.8141" x2="49.7293" y1="658.3957" y2="658.5283" />
+		<line fill="none" id="t1 p239" stroke="#4CCC00" stroke-width="2" x1="49.7293" x2="49.8141" y1="658.5283" y2="658.7810" />
+		<line fill="none" id="t1 p240" stroke="#00CC20" stroke-width="2" x1="49.8141" x2="49.8141" y1="658.7810" y2="658.6262" />
+		<line fill="none" id="t1 p241" stroke="#00CC40" stroke-width="2" x1="49.8141" x2="49.8989" y1="658.6262" y2="658.5662" />
+		<line fill="none" id="t1 p242" stroke="#08CC00" stroke-width="2" x1="49.8989" x2="50.0137" y1="658.5662" y2="658.4683" />
+		<line fill="none" id="t1 p243" stroke="#00CC30" stroke-width="2" x1="50.0137" x2="49.8390" y1="658.4683" y2="658.4431" />
+		<line fill="none" id="t1 p244" stroke="#10CC00" stroke-width="2" x1="49.8390" x2="49.3650" y1="658.4431" y2="658.6262" />
+		<line fill="none" id="t1 p245" stroke="#C8CC00" stroke-width="2" x1="49.3650" x2="50.0885" y1="658.6262" y2="658.5789" />
+		<line fill="none" id="t1 p246" stroke="#00CCC8" stroke-width="2" x1="50.0885" x2="49.8989" y1="658.5789" y2="658.5157" />
+		<line fill="none" id="t1 p247" stroke="#14CC00" stroke-width="2" x1="49.8989" x2="49.8889" y1="658.5157" y2="658.6736" />
+		<line fill="none" id="t1 p248" stroke="#28CC00" stroke-width="2" x1="49.8889" x2="50.0885" y1="658.6736" y2="658.7368" />
+		<line fill="none" id="t1 p249" stroke="#00CC08" stroke-width="2" x1="50.0885" x2="49.8390" y1="658.7368" y2="658.4525" />
+		<line fill="none" id="t1 p250" stroke="#64CC00" stroke-width="2" x1="49.8390" x2="49.8390" y1="658.4525" y2="658.5031" />
+		<line fill="none" id="t1 p251" stroke="#1CCC00" stroke-width="2" x1="49.8390" x2="49.9139" y1="658.5031" y2="658.6104" />
+		<line fill="none" id="t1 p252" stroke="#00CC0C" stroke-width="2" x1="49.9139" x2="49.8889" y1="658.6104" y2="658.7936" />
+		<line fill="none" id="t1 p253" stroke="#14CC00" stroke-width="2" x1="49.8889" x2="49.8141" y1="658.7936" y2="658.4209" />
+		<line fill="none" id="t1 p254" stroke="#40CC00" stroke-width="2" x1="49.8141" x2="49.8241" y1="658.4209" y2="658.5662" />
+		<line fill="none" id="t1 p255" stroke="#6CCC00" stroke-width="2" x1="49.8241" x2="49.8989" y1="658.5662" y2="658.5473" />
+		<line fill="none" id="t1 p256" stroke="#18CC00" stroke-width="2" x1="49.8989" x2="49.7143" y1="658.5473" y2="658.4683" />
+		<line fill="none" id="t1 p257" stroke="#18CC00" stroke-width="2" x1="49.7143" x2="49.6893" y1="658.4683" y2="658.4431" />
+		<line fill="none" id="t1 p258" stroke="#64CC00" stroke-width="2" x1="49.6893" x2="49.9763" y1="658.4431" y2="658.3736" />
+		<line fill="none" id="t1 p259" stroke="#28CC00" stroke-width="2" x1="49.9763" x2="49.7891" y1="658.3736" y2="658.4683" />
+		<line fill="none" id="t1 p260" stroke="#6CCC00" stroke-width="2" x1="49.7891" x2="49.7891" y1="658.4683" y2="658.3957" />
+		<line fill="none" id="t1 p261" stroke="#08CC00" stroke-width="2" x1="49.7891" x2="49.9139" y1="658.3957" y2="658.5662" />
+		<line fill="none" id="t1 p262" stroke="#38CC00" stroke-width="2" x1="49.9139" x2="49.9638" y1="658.5662" y2="658.4683" />
+		<line fill="none" id="t1 p263" stroke="#00CC00" stroke-width="2" x1="49.9638" x2="49.9139" y1="658.4683" y2="658.3736" />
+		<line fill="none" id="t1 p264" stroke="#44CC00" stroke-width="2" x1="49.9139" x2="49.9763" y1="658.3736" y2="658.4683" />
+		<line fill="none" id="t1 p265" stroke="#00CC00" stroke-width="2" x1="49.9763" x2="50.0885" y1="658.4683" y2="658.4083" />
+		<line fill="none" id="t1 p266" stroke="#3CCC00" stroke-width="2" x1="50.0885" x2="49.7891" y1="658.4083" y2="658.8789" />
+		<line fill="none" id="t1 p267" stroke="#50CC00" stroke-width="2" x1="49.7891" x2="49.8640" y1="658.8789" y2="658.4209" />
+		<line fill="none" id="t1 p268" stroke="#0CCC00" stroke-width="2" x1="49.8640" x2="49.8241" y1="658.4209" y2="658.0420" />
+		<line fill="none" id="t1 p269" stroke="#08CC00" stroke-width="2" x1="49.8241" x2="49.7293" y1="658.0420" y2="658.2409" />
+		<line fill="none" id="t1 p270" stroke="#00CC08" stroke-width="2" x1="49.7293" x2="49.4997" y1="658.2409" y2="658.5789" />
+		<line fill="none" id="t1 p271" stroke="#CC8000" stroke-width="2" x1="49.4997" x2="49.7293" y1="658.5789" y2="658.5662" />
+		<line fill="none" id="t1 p272" stroke="#60CC00" stroke-width="2" x1="49.7293" x2="49.7143" y1="658.5662" y2="658.4683" />
+		<line fill="none" id="t1 p273" stroke="#A0CC00" stroke-width="2" x1="49.7143" x2="49.7642" y1="658.4683" y2="658.3736" />
+		<line fill="none" id="t1 p274" stroke="#58CC00" stroke-width="2" x1="49.7642" x2="49.5895" y1="658.3736" y2="658.7368" />
+		<line fill="none" id="t1 p275" stroke="#BCCC00" stroke-width="2" x1="49.5895" x2="49.6893" y1="658.7368" y2="658.6104" />
+		<line fill="none" id="t1 p276" stroke="#78CC00" stroke-width="2" x1="49.6893" x2="49.8989" y1="658.6104" y2="658.5283" />
+		<line fill="none" id="t1 p277" stroke="#4CCC00" stroke-width="2" x1="49.8989" x2="50.0137" y1="658.5283" y2="658.4336" />
+		<line fill="none" id="t1 p278" stroke="#80CC00" stroke-width="2" x1="50.0137" x2="49.8989" y1="658.4336" y2="658.5031" />
+		<line fill="none" id="t1 p279" stroke="#24CC00" stroke-width="2" x1="49.8989" x2="49.8241" y1="658.5031" y2="658.2946" />
+		<line fill="none" id="t1 p280" stroke="#0CCC00" stroke-width="2" x1="49.8241" x2="49.7891" y1="658.2946" y2="658.4683" />
+		<line fill="none" id="t1 p281" stroke="#40CC00" stroke-width="2" x1="49.7891" x2="49.8241" y1="658.4683" y2="658.2757" />
+		<line fill="none" id="t1 p282" stroke="#00CC7C" stroke-width="2" x1="49.8241" x2="49.6893" y1="658.2757" y2="658.8189" />
+		<line fill="none" id="t1 p283" stroke="#CC1C00" stroke-width="2" x1="49.6893" x2="49.7642" y1="658.8189" y2="658.3957" />
+		<line fill="none" id="t1 p284" stroke="#70CC00" stroke-width="2" x1="49.7642" x2="49.6394" y1="658.3957" y2="658.4083" />
+		<line fill="none" id="t1 p285" stroke="#50CC00" stroke-width="2" x1="49.6394" x2="49.9388" y1="658.4083" y2="658.3736" />
+		<line fill="none" id="t1 p286" stroke="#88CC00" stroke-width="2" x1="49.9388" x2="49.7642" y1="658.3736" y2="658.4431" />
+		<line fill="none" id="t1 p287" stroke="#3CCC00" stroke-width="2" x1="49.7642" x2="49.4997" y1="658.4431" y2="659.1915" />
+		<line fill="none" id="t1 p288" stroke="#00CC3C" stroke-width="2" x1="49.4997" x2="49.6519" y1="659.1915" y2="658.8536" />
+		<line fill="none" id="t1 p289" stroke="#00CC04" stroke-width="2" x1="49.6519" x2="49.5895" y1="658.8536" y2="658.7999" />
+		<line fill="none" id="t1 p290" stroke="#60CC00" stroke-width="2" x1="49.5895" x2="49.6893" y1="658.7999" y2="658.4936" />
+		<line fill="none" id="t1 p291" stroke="#00CC44" stroke-width="2" x1="49.6893" x2="49.4897" y1="658.4936" y2="658.6420" />
+		<line fill="none" id="t1 p292" stroke="#58CC00" stroke-width="2" x1="49.4897" x2="49.4399" y1="658.6420" y2="658.8410" />
+		<line fill="none" id="t1 p293" stroke="#00CCB0" stroke-width="2" x1="49.4399" x2="49.3401" y1="658.8410" y2="658.3483" />
+		<line fill="none" id="t1 p294" stroke="#C4CC00" stroke-width="2" x1="49.3401" x2="49.5895" y1="658.3483" y2="658.5031" />
+		<line fill="none" id="t1 p295" stroke="#30CC00" stroke-width="2" x1="49.5895" x2="49.6644" y1="658.5031" y2="658.2315" />
+		<line fill="none" id="t1 p296" stroke="#3CCC00" stroke-width="2" x1="49.6644" x2="49.5771" y1="658.2315" y2="658.6010" />
+		<line fill="none" id="t1 p297" stroke="#90CC00" stroke-width="2" x1="49.5771" x2="49.5646" y1="658.6010" y2="658.6104" />
+		<line fill="none" id="t1 p298" stroke="#00CC50" stroke-width="2" x1="49.5646" x2="49.5646" y1="658.6104" y2="658.8947" />
+		<line fill="none" id="t1 p299" stroke="#00CC58" stroke-width="2" x1="49.5646" x2="49.6519" y1="658.8947" y2="658.5473" />
+		<line fill="none" id="t1 p300" stroke="#00CC14" stroke-width="2" x1="49.6519" x2="49.7392" y1="658.5473" y2="658.7936" />
+		<line fill="none" id="t1 p301" stroke="#00CC54" stroke-width="2" x1="49.7392" x2="49.6644" y1="658.7936" y2="658.5410" />
+		<line fill="none" id="t1 p302" stroke="#00CC20" stroke-width="2" x1="49.6644" x2="49.7392" y1="658.5410" y2="658.5473" />
+		<line fill="none" id="t1 p303" stroke="#18CC00" stroke-width="2" x1="49.7392" x2="49.5771" y1="658.5473" y2="658.5662" />
+		<line fill="none" id="t1 p304" stroke="#1CCC00" stroke-width="2" x1="49.5771" x2="49.5147" y1="658.5662" y2="658.6736" />
+		<line fill="none" id="t1 p305" stroke="#00CC80" stroke-width="2" x1="49.5147" x2="49.6644" y1="658.6736" y2="658.5410" />
+		<line fill="none" id="t1 p306" stroke="#08CC00" stroke-width="2" x1="49.6644" x2="49.5771" y1="658.5410" y2="658.4336" />
+		<line fill="none" id="t1 p307" stroke="#00CC10" stroke-width="2" x1="49.5771" x2="49.5771" y1="658.4336" y2="658.8789" />
+		<line fill="none" id="t1 p308" stroke="#00CC20" stroke-width="2" x1="49.5771" x2="49.6519" y1="658.8789" y2="659.2042" />
+		<line fill="none" id="t1 p309" stroke="#50CC00" stroke-width="2" x1="49.6519" x2="49.6644" y1="659.2042" y2="658.3957" />
+		<line fill="none" id="t1 p310" stroke="#00CC1C" stroke-width="2" x1="49.6644" x2="49.5895" y1="658.3957" y2="658.6262" />
+		<line fill="none" id="t1 p311" stroke="#54CC00" stroke-width="2" x1="49.5895" x2="49.4897" y1="658.6262" y2="658.7999" />
+		<line fill="none" id="t1 p312" stroke="#30CC00" stroke-width="2" x1="49.4897" x2="49.6893" y1="658.7999" y2="658.3262" />
+		<line fill="none" id="t1 p313" stroke="#00CC20" stroke-width="2" x1="49.6893" x2="49.6893" y1="658.3262" y2="658.6420" />
+		<line fill="none" id="t1 p314" stroke="#00CC3C" stroke-width="2" x1="49.6893" x2="49.8141" y1="658.6420" y2="658.7810" />
+		<line fill="none" id="t1 p315" stroke="#00CC4C" stroke-width="2" x1="49.8141" x2="49.5771" y1="658.7810" y2="658.7589" />
+		<line fill="none" id="t1 p316" stroke="#00CC00" stroke-width="2" x1="49.5771" x2="49.6519" y1="658.7589" y2="658.5410" />
+		<line fill="none" id="t1 p317" stroke="#4CCC00" stroke-width="2" x1="49.6519" x2="49.5646" y1="658.5410" y2="658.6736" />
+		<line fill="none" id="t1 p318" stroke="#30CC00" stroke-width="2" x1="49.5646" x2="49.3900" y1="658.6736" y2="658.5410" />
+		<line fill="none" id="t1 p319" stroke="#1CCC00" stroke-width="2" x1="49.3900" x2="49.4997" y1="658.5410" y2="658.6989" />
+		<line fill="none" id="t1 p320" stroke="#00CC18" stroke-width="2" x1="49.4997" x2="49.7392" y1="658.6989" y2="658.9578" />
+		<line fill="none" id="t1 p321" stroke="#00CC10" stroke-width="2" x1="49.7392" x2="49.4997" y1="658.9578" y2="658.6862" />
+		<line fill="none" id="t1 p322" stroke="#00CC54" stroke-width="2" x1="49.4997" x2="49.5771" y1="658.6862" y2="658.7936" />
+		<line fill="none" id="t1 p323" stroke="#60CC00" stroke-width="2" x1="49.5771" x2="49.7143" y1="658.7936" y2="658.6989" />
+		<line fill="none" id="t1 p324" stroke="#00CC24" stroke-width="2" x1="49.7143" x2="49.8640" y1="658.6989" y2="658.6862" />
+		<line fill="none" id="t1 p325" stroke="#00CC0C" stroke-width="2" x1="49.8640" x2="48.8535" y1="658.6862" y2="658.9989" />
+		<line fill="none" id="t1 p326" stroke="#00CC0C" stroke-width="2" x1="48.8535" x2="49.9887" y1="658.9989" y2="658.2757" />
+		<line fill="none" id="t1 p327" stroke="#00CC0C" stroke-width="2" x1="49.9887" x2="49.6644" y1="658.2757" y2="658.5410" />
+		<line fill="none" id="t1 p328" stroke="#00CC0C" stroke-width="2" x1="49.6644" x2="49.5895" y1="658.5410" y2="658.3483" />
+		<line fill="none" id="t1 p329" stroke="#00CC20" stroke-width="2" x1="49.5895" x2="49.6644" y1="658.3483" y2="658.6862" />
+		<line fill="none" id="t1 p330" stroke="#38CC00" stroke-width="2" x1="49.6644" x2="49.3401" y1="658.6862" y2="658.7589" />
+		<line fill="none" id="t1 p331" stroke="#60CC00" stroke-width="2" x1="49.3401" x2="49.4399" y1="658.7589" y2="658.1557" />
+		<line fill="none" id="t1 p332" stroke="#00CC10" stroke-width="2" x1="49.4399" x2="49.3900" y1="658.1557" y2="659.0336" />
+		<line fill="none" id="t1 p333" stroke="#CC5400" stroke-width="2" x1="49.3900" x2="49.8390" y1="659.0336" y2="659.7947" />
+		<line fill="none" id="t1 p334" stroke="#28CC00" stroke-width="2" x1="49.8390" x2="49.5396" y1="659.7947" y2="658.2409" />
+		<line fill="none" id="t1 p335" stroke="#CC0000" stroke-width="2" x1="49.5396" x2="49.7143" y1="658.2409" y2="659.3842" />
+		<line fill="none" id="t1 p336" stroke="#00CC6C" stroke-width="2" x1="49.7143" x2="49.8241" y1="659.3842" y2="659.8421" />
+		<line fill="none" id="t1 p337" stroke="#00CC78" stroke-width="2" x1="49.8241" x2="49.7642" y1="659.8421" y2="658.7589" />
+		<line fill="none" id="t1 p338" stroke="#00CC68" stroke-width="2" x1="49.7642" x2="49.4149" y1="658.7589" y2="658.8947" />
+		<line fill="none" id="t1 p339" stroke="#00CC7C" stroke-width="2" x1="49.4149" x2="49.5771" y1="658.8947" y2="658.3483" />
+		<line fill="none" id="t1 p340" stroke="#CCCC00" stroke-width="2" x1="49.5771" x2="48.7662" y1="658.3483" y2="659.0115" />
+		<line fill="none" id="t1 p341" stroke="#5C00CC" stroke-width="2" x1="48.7662" x2="50.0386" y1="659.0115" y2="658.5473" />
+		<line fill="none" id="t1 p342" stroke="#00CC38" stroke-width="2" x1="50.0386" x2="49.8390" y1="658.5473" y2="658.6420" />
+		<line fill="none" id="t1 p343" stroke="#00CC20" stroke-width="2" x1="49.8390" x2="49.1405" y1="658.6420" y2="658.8410" />
+		<line fill="none" id="t1 p344" stroke="#00CC58" stroke-width="2" x1="49.1405" x2="49.4897" y1="658.8410" y2="658.8410" />
+		<line fill="none" id="t1 p345" stroke="#00CC44" stroke-width="2" x1="49.4897" x2="49.4897" y1="658.8410" y2="658.6010" />
+		<line fill="none" id="t1 p346" stroke="#00CC5C" stroke-width="2" x1="49.4897" x2="49.5771" y1="658.6010" y2="658.6483" />
+		<line fill="none" id="t1 p347" stroke="#00CC28" stroke-width="2" x1="49.5771" x2="49.4149" y1="658.6483" y2="658.6483" />
+		<line fill="none" id="t1 p348" stroke="#54CC00" stroke-width="2" x1="49.4149" x2="49.3401" y1="658.6483" y2="658.7052" />
+		<line fill="none" id="t1 p349" stroke="#20CC00" stroke-width="2" x1="49.3401" x2="49.1904" y1="658.7052" y2="658.5789" />
+		<line fill="none" id="t1 p350" stroke="#24CC00" stroke-width="2" x1="49.1904" x2="49.2902" y1="658.5789" y2="658.6010" />
+		<line fill="none" id="t1 p351" stroke="#50CC00" stroke-width="2" x1="49.2902" x2="49.4399" y1="658.6010" y2="658.4209" />
+		<line fill="none" id="t1 p352" stroke="#00CC00" stroke-width="2" x1="49.4399" x2="49.3650" y1="658.4209" y2="658.0736" />
+		<line fill="none" id="t1 p353" stroke="#98CC00" stroke-width="2" x1="49.3650" x2="49.4997" y1="658.0736" y2="659.0210" />
+		<line fill="none" id="t1 p354" stroke="#24CC00" stroke-width="2" x1="49.4997" x2="50.0885" y1="659.0210" y2="658.1178" />
+		<line fill="none" id="t1 p355" stroke="#CCB400" stroke-width="2" x1="50.0885" x2="50.2232" y1="658.1178" y2="658.0578" />
+		<line fill="none" id="t1 p356" stroke="#00CC00" stroke-width="2" x1="50.2232" x2="49.2403" y1="658.0578" y2="658.7210" />
+		<line fill="none" id="t1 p357" stroke="#CC8800" stroke-width="2" x1="49.2403" x2="49.4149" y1="658.7210" y2="658.6420" />
+		<line fill="none" id="t1 p358" stroke="#5CCC00" stroke-width="2" x1="49.4149" x2="49.6394" y1="658.6420" y2="658.1367" />
+		<line fill="none" id="t1 p359" stroke="#14CC00" stroke-width="2" x1="49.6394" x2="49.2403" y1="658.1367" y2="658.6736" />
+		<line fill="none" id="t1 p360" stroke="#38CC00" stroke-width="2" x1="49.2403" x2="48.7762" y1="658.6736" y2="659.1915" />
+	</g>
+	<g id="Track-02/27/13 10:13:02 (t1) label" onmousedown="trackLabelMouseDown(evt,'Track-02/27/13 10:13:02 (t1)')" onmousemove="moveGroup(evt,'Track-02/27/13 10:13:02 (t1) label')" onmouseout="highlight('Track-02/27/13 10:13:02 (t1) label',0)" onmouseover="highlight('Track-02/27/13 10:13:02 (t1) label',1)" onmouseup="trackLabelMouseUp(evt,'Track-02/27/13 10:13:02 (t1)')" opacity="1" transform="translate(0,0)" x="51.7143" y="658.5883">		<text fill="#000000" font-family="Verdana" font-size="10" id="Track-02/27/13 10:13:02 (t1) name" opacity="1" text-anchor="middle" x="51.7143" y="658.5883">Track-02/27/13 10:13:02
+		</text>		<text fill="#000000" font-family="Verdana" font-size="7.5" id="Track-02/27/13 10:13:02 (t1) desc" opacity="1" text-anchor="middle" x="51.7143" y="668.5883">null
+		</text>
+	</g>
+	<g id="Waypoints" />
+	<g id="Legend" onmousedown="trackGroup(evt,'Legend',1)" onmousemove="moveGroup(evt,'Legend')" onmouseup="trackGroup(evt,'Legend',0)" transform="translate(0,0)" x="6" y="686">		<text fill="#CC0000" font-family="Verdana" font-size="10" id="legend label 1" text-anchor="start" x="6" y="686">-38.1
+		</text>		<text fill="#98CC00" font-family="Verdana" font-size="10" id="legend label 2" text-anchor="start" x="6" y="676">-8.1
+		</text>		<text fill="#00CC68" font-family="Verdana" font-size="10" id="legend label 3" text-anchor="start" x="6" y="666">21.8
+		</text>		<text fill="#0034CC" font-family="Verdana" font-size="10" id="legend label 4" text-anchor="start" x="6" y="656">51.8
+		</text>		<text fill="#CC00CC" font-family="Verdana" font-size="10" id="legend label 5" text-anchor="start" x="6" y="646">81.7
+		</text>		<text fill="#000000" font-family="Verdana" font-size="10" id="legend header" onmouseout="highlight('Legend',0)" onmouseover="highlight('Legend',1)" text-anchor="start" x="6" y="634">Elevation (m)
+		</text>
+	</g>
+	<g id="Scale" onmousedown="trackGroup(evt,'Scale',1)" onmousemove="moveGroup(evt,'Scale')" onmouseout="highlight('Scale',0)" onmouseover="highlight('Scale',1)" onmouseup="trackGroup(evt,'Scale',0)" transform="translate(0,0)" x="350" y="350">
+		<line fill="none" id="scale_line" stroke="#000000" stroke-width="1" x1="207.673911973356" x2="492.326088026644" y1="682" y2="682" />
+		<line fill="none" id="scale_end1" stroke="#000000" stroke-width="1" x1="207.673911973356" x2="207.673911973356" y1="680" y2="684" />
+		<line fill="none" id="scale_end2" stroke="#000000" stroke-width="1" x1="492.326088026644" x2="492.326088026644" y1="680" y2="684" />		<text fill="#000000" font-family="Verdana" font-size="10" id="scale_text" text-anchor="middle" x="350" y="680">10.0 km
+		</text>
+	</g>
+	<g id="Logo" onmousedown="trackGroup(evt,'Logo',1)" onmousemove="moveGroup(evt,'Logo')" onmouseout="highlight('Logo',0)" onmouseover="highlight('Logo',1)" onmouseup="trackGroup(evt,'Logo',0)" transform="translate(0,0)" x="350" y="697">
+		<rect fill="#FFFFFF" height="11" id="logo box" opacity="0.6" width="160" x="270" y="688" />
+		<a target="_blank" xlink:href="http://www.gpsvisualizer.com/">			<text fill="#000000" font-family="Verdana" font-size="9" id="logo_text" text-anchor="middle" transform="translate(350,697) rotate(0) translate(-350,-697)" x="350" y="697">created by GPSVisualizer.com
+			</text>
+		</a>
+	</g>
+	<rect fill="none" height="699" id="image_boundary" opacity="0" stroke="#000000" stroke-width="1" width="699" x="0.5" y="0.5" />
+	<a id="modified_source_link" target="_blank" xlink:href="http://www.gpsvisualizer.com/display/1362173308-32571-173.228.44.186-modified.svg" />
+	<a id="localized_jpeg_link" target="_blank" xlink:href="http://www.gpsvisualizer.com/localize?localize_mode=rasterize_jpg&amp;local_input=/1362173308-32571-173.228.44.186-modified.svg" />
+	<a id="localized_png_link" target="_blank" xlink:href="http://www.gpsvisualizer.com/localize?localize_mode=rasterize_png&amp;local_input=/1362173308-32571-173.228.44.186-modified.svg" />
+	<a id="localized_svg_link" target="_blank" xlink:href="http://www.gpsvisualizer.com/localize?localize_mode=embed&amp;local_input=/1362173308-32571-173.228.44.186-modified.svg" />	<script type="text/ecmascript"><![CDATA[
+	function saveModifiedSource() {
+		var okay_to_continue;
+		if (document.URL.substr(0,4) == 'http') {
+			okay_to_continue = confirm('After you click "OK" or "Yes" in this box, please wait a few moments while your updated SVG file is sent to the server.')
+		} else {
+			alert('Sorry.  For security reasons, you can only save modifications to a file that resides on gpsvisualizer.com.');
+			return;
+		}
+		if (SVGDoc.getElementById('modified_source_link text') != null) {
+			var theThingToDelete = SVGDoc.getElementById('modified_source_link text');
+			theThingToDelete.getParentNode().removeChild(theThingToDelete);
+		}
+		if (SVGDoc.getElementById('localized_jpeg_link text') != null) {
+			var theThingToDelete2 = SVGDoc.getElementById('localized_jpeg_link text');
+			theThingToDelete2.getParentNode().removeChild(theThingToDelete2);
+		}
+		if (SVGDoc.getElementById('localized_png_link text') != null) {
+			var theThingToDelete3 = SVGDoc.getElementById('localized_png_link text');
+			theThingToDelete3.getParentNode().removeChild(theThingToDelete3);
+		}
+		if (okay_to_continue) {
+			showSaver(0);
+			var theSource = printNode(document.rootElement);
+			showSaver(1);
+			postURL('http://www.gpsvisualizer.com/save_modified.cgi?/1362173308-32571-173.228.44.186.svg',theSource,postIsDone,"image/svg-xml");
+		}
+	}
+	function postIsDone() {
+		if (SVGDoc.getElementById('modified_source_link') != null) {
+			
+			var theExistingModifiedLink = SVGDoc.getElementById('modified_source_link');
+			var newModLinkLabel = SVGDoc.createElementNS(svgns,'text');
+			newModLinkLabel.setAttributeNS(null, 'id', 'modified_source_link text');
+			newModLinkLabel.setAttributeNS(null, 'x', 3); newModLinkLabel.setAttributeNS(null, 'y', 14);
+			newModLinkLabel.setAttributeNS(null, 'fill', '#CC0000'); newModLinkLabel.setAttributeNS(null, 'font-family', 'Verdana');  newModLinkLabel.setAttributeNS(null, 'font-size', '12');
+			var newModLinkText = document.createTextNode('Retrieve modified SVG');
+			newModLinkLabel.appendChild(newModLinkText);
+			theExistingModifiedLink.appendChild(newModLinkLabel);
+
+			var theExistingJPEGLink = SVGDoc.getElementById('localized_jpeg_link');
+			var newJPEGLinkLabel = SVGDoc.createElementNS(svgns,'text');
+			newJPEGLinkLabel.setAttributeNS(null, 'id', 'localized_jpeg_link text');
+			newJPEGLinkLabel.setAttributeNS(null, 'x', 3); newJPEGLinkLabel.setAttributeNS(null, 'y', 28);
+			newJPEGLinkLabel.setAttributeNS(null, 'fill', '#CC0000'); newJPEGLinkLabel.setAttributeNS(null, 'font-family', 'Verdana');  newJPEGLinkLabel.setAttributeNS(null, 'font-size', '12');
+			var newJPEGLinkText = document.createTextNode('Convert modified SVG to JPEG');
+			newJPEGLinkLabel.appendChild(newJPEGLinkText);
+			theExistingJPEGLink.appendChild(newJPEGLinkLabel);
+
+			var theExistingPNGLink = SVGDoc.getElementById('localized_png_link');
+			var newPNGLinkLabel = SVGDoc.createElementNS(svgns,'text');
+			newPNGLinkLabel.setAttributeNS(null, 'id', 'localized_png_link text');
+			newPNGLinkLabel.setAttributeNS(null, 'x', 3); newPNGLinkLabel.setAttributeNS(null, 'y', 42);
+			newPNGLinkLabel.setAttributeNS(null, 'fill', '#CC0000'); newPNGLinkLabel.setAttributeNS(null, 'font-family', 'Verdana');  newPNGLinkLabel.setAttributeNS(null, 'font-size', '12');
+			var newPNGLinkText = document.createTextNode('Convert modified SVG to PNG');
+			newPNGLinkLabel.appendChild(newPNGLinkText);
+			theExistingPNGLink.appendChild(newPNGLinkLabel);
+
+			var theExistingSVGLink = SVGDoc.getElementById('localized_svg_link');
+			var newSVGLinkLabel = SVGDoc.createElementNS(svgns,'text');
+			newSVGLinkLabel.setAttributeNS(null, 'id', 'localized_svg_link text');
+			newSVGLinkLabel.setAttributeNS(null, 'x', 3); newSVGLinkLabel.setAttributeNS(null, 'y', 56);
+			newSVGLinkLabel.setAttributeNS(null, 'fill', '#CC0000'); newSVGLinkLabel.setAttributeNS(null, 'font-family', 'Verdana');  newSVGLinkLabel.setAttributeNS(null, 'font-size', '12');
+			var newSVGLinkText = document.createTextNode('Localize modified SVG (embed background)');
+			newSVGLinkLabel.appendChild(newSVGLinkText);
+			theExistingSVGLink.appendChild(newSVGLinkLabel);
+
+			alert('The modified data has been recorded.  Click "Retrieve modified SVG" to open your new file, or click "Convert modified SVG to JPEG/PNG" or "Localize modified SVG" to create a flat graphic or simplified SVG of your drawing.')
+		}
+	}
+	function saverMouseDown(evt,id) {
+		var theSaver = SVGDoc.getElementById('Saver');
+		if (theSaver.getAttributeNS(null, 'opacity') == 0) { return; }
+		tracking = 1;
+		findGroupClickOffset(evt,id);
+		var scale = SVGRoot.getCurrentScale();
+		var pan = SVGRoot.getCurrentTranslate();
+		global_mouse_x = (evt.getClientX())/scale + (( 0.0 - pan.x ) / scale);
+		global_mouse_y = (evt.getClientY())/scale + (( 0.0 - pan.y ) / scale);
+	}
+	function saverMouseUp(evt,id) {
+		var theSaver = SVGDoc.getElementById('Saver');
+		if (theSaver.getAttributeNS(null, 'opacity') == 0) { return; }
+		// Any time the mouse is lifted off the saver, clear the blue highlights
+		var theGroupTags = SVGDoc.getElementsByTagName('g');
+		for(g=0; g < theGroupTags.length; g++){
+			theGroupTags.item(g).setAttributeNS(null, 'stroke','none');
+			theGroupTags.item(g).setAttributeNS(null, 'stroke-width',0);
+		}
+		tracking = 0;
+		var scale = SVGRoot.getCurrentScale();
+		var pan = SVGRoot.getCurrentTranslate();
+		var current_mouse_x = (evt.getClientX())/scale + (( 0.0 - pan.x ) / scale);
+		var current_mouse_y = (evt.getClientY())/scale + (( 0.0 - pan.y ) / scale);
+		if (current_mouse_x == global_mouse_x && current_mouse_y == global_mouse_y) {
+			saveModifiedSource();
+		}
+	}
+	]]>
+	</script>
+	<g id="Saver" onmousedown="saverMouseDown(evt,'Saver')" onmousemove="moveGroup(evt,'Saver')" onmouseup="saverMouseUp(evt,'Saver')" opacity="0" transform="translate(682,2)" x="682" y="2">
+		<rect fill="#CC0000" height="16" id="saver 1" rx="1.5" ry="1.5" width="16" x="0" y="0" />
+		<rect fill="#FFFFFF" height="8.5" id="saver 2" width="12" x="2" y="0.5" />
+		<rect fill="#999999" height="1" id="saver 3a" width="11" x="2.5" y="2" />
+		<rect fill="#999999" height="1" id="saver 3b" width="11" x="2.5" y="4" />
+		<rect fill="#999999" height="1" id="saver 3c" width="11" x="2.5" y="6" />
+		<rect fill="#CCCCCC" height="5.5" id="saver 4" width="8" x="4" y="10.5" />
+		<rect fill="#CC0000" height="4.5" id="saver 5" width="2" x="5.5" y="11" />
+	</g><!-- debugging stuff:
+ --><!-- key = 1362173308-32571
+ --><!-- min. altitude = -38.1
+ --><!-- max. altitude = 81.7
+ --><!-- colorize min = -38.1
+ --><!-- colorize max = 81.7
+ --><!-- colorize range = 119.8
+ --><!-- upper left (data) = 38.00848,-122.28522
+ --><!-- lower right (data) = 37.81216,-122.04356
+ --><!-- upper left (drawing) = 38.0211458064516,-122.304676395357
+ --><!-- lower right (drawing) = 37.7994941935484,-122.024103604643
+ --><!-- center = 37.91032,-122.16439
+ --><!-- width,height (pixels) = 700,700
+ --><!-- width,height (degrees) = 0.280572790713279,0.22165161290323
+ --><!-- scale = 99918, resolution = 35.25 m/pixel
+ --><!-- map = http://www2.demis.nl/wms/wms.asp?version=1.1.0&wms=WorldMap&request=GetMap&srs=EPSG:4326&bbox=-122.3046764,37.7994942,-122.0241036,38.0211458&WIDTH=700&HEIGHT=700&format=PNG&transparent=FALSE&exceptions=INIMAGE&wrapdateline=TRUE&layers=Bathymetry,Countries,Topography,Builtup+areas,Coastlines,Waterbodies,Rivers,Streams,Highways,Roads,Railroads,Trails,Hillshading,Borders,Settlements,Cities,Airports
+ --><!-- backgrounds = http://www.gpsvisualizer.com/backgrounds?max_dimension=700&margin=0&mw=-122.304676395357&me=-122.024103604643&ms=37.7994941935484&mn=38.0211458064516&submitted=1
+ --><!-- e-mail = 
+ --><!-- 
+	Generated using the Perl SVG Module V2.49
+	by Ronan Oger
+	Info: http://www.roitsystems.com/
+ -->
+</svg>
