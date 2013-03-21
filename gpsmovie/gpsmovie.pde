@@ -5,7 +5,7 @@ Movie bikeFilm, staticFilm, officeFilm, homeFilm ;
 PImage movie;
  
 void setup() {
-  size(1000, 1000);
+  size(displayWidth, displayHeight);
   background(0);
    
   staticFilm = new Movie(this, "static.mov");
@@ -23,22 +23,24 @@ void setup() {
 void draw() {
    movie = bikeFilm; 
    if (key == 's'){
-     bikeFilm.play();
-     officeFilm.stop();
-     homeFilm.stop();
      movie = bikeFilm;
+     bikeFilm.loop();
+     officeFilm.pause();
+     homeFilm.pause();
    }
   else if (key == 'd'){
-     officeFilm.play();
-     bikeFilm.stop();
-     homeFilm.stop();
-     movie = officeFilm;
+     movie = officeFilm; 
+     officeFilm.loop();
+     bikeFilm.pause();
+     homeFilm.pause();
+     
      
   } else if (key == 'f'){
-    homeFilm.play();
-    bikeFilm.stop();
-    officeFilm.stop();
     movie = homeFilm;
+    homeFilm.loop();
+    bikeFilm.pause();
+    officeFilm.pause();
+    
   } else {
     
     movie = staticFilm;
@@ -46,8 +48,10 @@ void draw() {
   }
  
  image(staticFilm, 0, 0);
+ image(staticFilm, 0, 200);
+ 
  tint(255, 126);
- image(movie, 20, 100);
+ image(movie, 100, 100);
  
  
   //Testing to see if they play at the same time.
