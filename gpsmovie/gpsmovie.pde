@@ -35,7 +35,7 @@ void draw() {
      homeFilm.pause();
      
      
-  } else if (key == 'f'){
+  } else if (key == 'a'){
     movie = homeFilm;
     homeFilm.loop();
     bikeFilm.pause();
